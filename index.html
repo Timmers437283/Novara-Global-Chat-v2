@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Global Chat</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: white;
+    }
+
+    #topbar {
+      padding: 10px;
+      background: #161616;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #chat {
+      height: calc(100vh - 110px);
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .msg {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .bubble {
+      background: #1c1c1c;
+      padding: 8px 10px;
+      border-radius: 8px;
+      max-width: 70%;
+    }
+
+    .name {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 3px;
+    }
+
+    #inputBar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      background: #161616;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      outline: none;
+      background: #222;
+      color: white;
+    }
+
+    button {
+      width: 100px;
+      border: none;
+      background: #2b6cff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1f55cc;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="topbar">
+  <div id="userInfo"></div>
+  <button onclick="changeName()">Change Name</button>
+</div>
+
+<div id="chat"></div>
+
+<div id="inputBar">
+  <input id="msg" placeholder="Type message...">
+  <button onclick="send()">Send</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
+    authDomain: "novara-global.firebaseapp.com",
+    projectId: "novara-global",
+    databaseURL: "https://novara-global-default-rtdb.firebaseio.com/",
+    storageBucket: "novara-global.firebasestorage.app",
+    messagingSenderId: "525223468995",
+    appId: "1:525223468995:web:8c1cc1ba4803928168e776"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const messagesRef = ref(db, "messages");
+
+  const avatars = ["cat", "crow", "elephant", "dog", "dog2", "panda"];
+
+  // USER DATA (local only)
+  let username = localStorage.getItem("username");
+  let avatar = localStorage.getItem("avatar");
+
+  if (!username) {
+    username = "Guest" + Math.floor(Math.random() * 9999);
+    localStorage.setItem("username", username);
+  }
+
+  if (!avatar) {
+    avatar = avatars[Math.floor(Math.random() * avatars.length)];
+    localStorage.setItem("avatar", avatar);
+  }
+
+  document.getElementById("userInfo").innerText =
+    `${username} | ${avatar}`;
+
+  window.changeName = function () {
+    const newName = prompt("Enter new username:");
+    if (newName && newName.length > 0) {
+      username = newName.slice(0, 20);
+      localStorage.setItem("username", username);
+      document.getElementById("userInfo").innerText =
+        `${username} | ${avatar}`;
+    }
+  };
+
+  function send() {
+    const input = document.getElementById("msg");
+    let text = input.value.trim();
+
+    if (!text) return;
+    if (text.length > 150) return;
+
+    push(messagesRef, {
+      text,
+      name: username,
+      avatar,
+      time: Date.now()
+    });
+
+    input.value = "";
+  }
+
+  window.send = send;
+
+  onChildAdded(messagesRef, (data) => {
+    const msg = data.val();
+
+    const div = document.createElement("div");
+    div.className = "msg";
+
+    div.innerHTML = `
+      <img class="avatar" src="assets/${msg.avatar}.png">
+      <div class="bubble">
+        <div class="name">${msg.name}</div>
+        <div>${msg.text}</div>
+      </div>
+    `;
+
+    document.getElementById("chat").appendChild(div);
+    document.getElementById("chat").scrollTop = 999999;
+  });
+</script>
+
+</body>
+</html>
