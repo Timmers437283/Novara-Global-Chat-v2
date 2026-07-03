@@ -67,23 +67,26 @@ body {
   margin-bottom: 4px;
 }
 
-/* reactions row */
+/* REACTIONS ROW (LEFT ALIGNED) */
 .reactions {
   display: flex;
-  gap: 6px;
+  gap: 0;
   margin-top: 6px;
   margin-left: 48px;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
+/* reaction pill */
 .react {
   background: #2a2a2a;
   padding: 4px 8px;
   border-radius: 20px;
   font-size: 12px;
   cursor: pointer;
+  margin-right: 6px;
 }
 
+/* add button */
 .plus {
   width: 24px;
   height: 24px;
@@ -94,7 +97,7 @@ body {
   cursor: pointer;
 }
 
-/* input */
+/* input bar */
 #inputBar {
   position: fixed;
   bottom: 0;
@@ -192,7 +195,7 @@ localStorage.setItem("username", username);
 let avatar = localStorage.getItem("avatar") || avatars[Math.floor(Math.random()*avatars.length)];
 localStorage.setItem("avatar", avatar);
 
-/* ONLINE */
+/* ONLINE SYSTEM */
 const meRef = ref(db, "online/" + myId);
 
 function heartbeat() {
@@ -206,6 +209,7 @@ heartbeat();
 setInterval(heartbeat, 15000);
 onDisconnect(meRef).remove();
 
+/* ONLINE COUNT */
 onValue(onlineRef, (snap) => {
   const data = snap.val() || {};
   let count = Object.keys(data).length;
@@ -222,7 +226,7 @@ onValue(onlineRef, (snap) => {
   el.innerText = "Online: " + count;
 });
 
-/* INIT */
+/* INIT NAME */
 window.addEventListener("DOMContentLoaded", () => {
   const el = document.getElementById("nameInput");
   if (el) el.value = username;
@@ -276,10 +280,12 @@ onValue(messagesRef, (snap) => {
 
     let reactionHTML = "";
 
-    order.forEach(r => {
+    order.forEach((r, index) => {
       if (reactions[r]) {
         reactionHTML += `
-          <div class="react" onclick="toggle('${id}','${r}')">
+          <div class="react"
+          style="margin-left:${index === 0 ? 0 : "2px"}"
+          onclick="toggle('${id}','${r}')">
             ${r} ${reactions[r].length}
           </div>
         `;
