@@ -311,7 +311,9 @@ onValue(messagesRef, (snap) => {
         <div class="bubble">
           <div class="name">
             ${msg.name || "Unknown"}
-                <span class="time">${msg.timestamp || ""}</span>
+                <span class="time">
+                  ${msg.timestamp || new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
             </div>
           <div>${msg.text || ""}</div>
         </div>
