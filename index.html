@@ -1,3 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Global Chat</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0b0b0b;
+  color: white;
+}
+
+/* TOP BAR */
+#topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #151515;
+  align-items: center;
+}
+
+#left {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#nameInput {
+  background: #222;
+  border: none;
+  color: white;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+/* CHAT */
+#chat {
+  height: calc(100vh - 140px);
+  overflow-y: auto;
+  padding: 14px;
+}
+
+/* MESSAGE */
+.msg {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.bubble {
+  background: #1c1c1c;
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 600px;
+  min-width: 200px;
+}
+
+.name {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+/* REACTIONS */
+.reactions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  margin-left: 48px;
+  flex-wrap: wrap;
+}
+
+.react {
+  background: #2a2a2a;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.plus {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+/* INPUT */
+#inputBar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  background: #151515;
+}
+
+#msg {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #222;
+  color: white;
+}
+
+/* PICKER */
+#picker {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1c1c;
+  padding: 10px;
+  border-radius: 10px;
+  display: none;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.emoji {
+  font-size: 20px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topbar">
+  <div id="left">
+    <input id="nameInput" placeholder="username">
+    <button onclick="saveName()">Save</button>
+  </div>
+</div>
+
+<div id="chat"></div>
+<div id="picker"></div>
+
+<div id="inputBar">
+  <input id="msg" placeholder="message (88 max)">
+  <button onclick="send()">Send</button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
@@ -13,7 +167,7 @@ import {
 
 /* FIREBASE */
 const firebaseConfig = {
-  apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
+  apiKey: "AIzaSyBAc10kP2GOre4di3zwLuXePMS1bA3-GBU",
   authDomain: "novara-global.firebaseapp.com",
   projectId: "novara-global",
   databaseURL: "https://novara-global-default-rtdb.firebaseio.com/",
@@ -31,23 +185,17 @@ const onlineRef = ref(db, "online");
 const avatars = ["cat","crow","elephant","dog","dog2","panda"];
 const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
 
-const order = ["❤️","😂","😭","💀","🥀","🤡"];
+const order = REACTIONS;
 const myId = Math.random().toString(36).slice(2);
 
-/* SAFE USER */
-let username = localStorage.getItem("username");
-if (!username) {
-  username = "Guest" + Math.floor(Math.random()*9999);
-  localStorage.setItem("username", username);
-}
+/* USER */
+let username = localStorage.getItem("username") || ("Guest" + Math.floor(Math.random()*9999));
+localStorage.setItem("username", username);
 
-let avatar = localStorage.getItem("avatar");
-if (!avatar) {
-  avatar = avatars[Math.floor(Math.random()*avatars.length)];
-  localStorage.setItem("avatar", avatar);
-}
+let avatar = localStorage.getItem("avatar") || avatars[Math.floor(Math.random()*avatars.length)];
+localStorage.setItem("avatar", avatar);
 
-/* ONLINE SAFE */
+/* ONLINE SYSTEM */
 const meRef = ref(db, "online/" + myId);
 
 function heartbeat() {
@@ -61,7 +209,7 @@ heartbeat();
 setInterval(heartbeat, 15000);
 onDisconnect(meRef).remove();
 
-/* ONLINE COUNT SAFE */
+/* ONLINE COUNT */
 onValue(onlineRef, (snap) => {
   const data = snap.val() || {};
   const count = Object.keys(data).length;
@@ -71,7 +219,6 @@ onValue(onlineRef, (snap) => {
     el = document.createElement("div");
     el.id = "onlineCount";
     el.style.color = "#888";
-    el.style.padding = "6px";
     document.getElementById("topbar").appendChild(el);
   }
 
@@ -80,16 +227,22 @@ onValue(onlineRef, (snap) => {
 
 /* INIT */
 window.addEventListener("DOMContentLoaded", () => {
-  const el = document.getElementById("nameInput");
-  if (el) el.value = username;
+  document.getElementById("nameInput").value = username;
 });
 
-/* SEND SAFE */
+/* SAVE NAME */
+window.saveName = function () {
+  const v = document.getElementById("nameInput").value.trim();
+  if (!v) return;
+  username = v.slice(0, 20);
+  localStorage.setItem("username", username);
+  heartbeat();
+};
+
+/* SEND */
 window.send = function () {
   const input = document.getElementById("msg");
-  if (!input) return;
-
-  const text = (input.value || "").trim();
+  const text = input.value.trim();
   if (!text || text.length > 88) return;
 
   push(messagesRef, {
@@ -103,17 +256,14 @@ window.send = function () {
   input.value = "";
 };
 
-/* ENTER */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
 
-/* SAFE RENDER (NO CRASHES) */
+/* RENDER (SAFE) */
 onValue(messagesRef, (snap) => {
   const data = snap.val() || {};
   const chat = document.getElementById("chat");
-  if (!chat) return;
-
   chat.innerHTML = "";
 
   Object.entries(data).forEach(([id, msg]) => {
@@ -123,14 +273,11 @@ onValue(messagesRef, (snap) => {
 
     let reactionHTML = "";
 
-    order.forEach((r, i) => {
-      const arr = reactions[r];
-      if (arr && Array.isArray(arr)) {
+    order.forEach(r => {
+      if (reactions[r]) {
         reactionHTML += `
-          <div class="react"
-          style="margin-right:6px"
-          onclick="toggle('${id}','${r}')">
-            ${r} ${arr.length}
+          <div class="react" onclick="toggle('${id}','${r}')">
+            ${r} ${reactions[r].length}
           </div>
         `;
       }
@@ -159,7 +306,7 @@ onValue(messagesRef, (snap) => {
   });
 });
 
-/* REACTIONS SAFE */
+/* TOGGLE REACTION */
 window.toggle = async function(id, emoji) {
   const r = ref(db, "messages/" + id);
   const s = await get(r);
@@ -181,4 +328,34 @@ window.toggle = async function(id, emoji) {
 
   update(r, { reactions: d.reactions });
 };
+
+/* PICKER */
+const picker = document.getElementById("picker");
+let currentMsg = null;
+
+window.openPicker = function (e, id) {
+  e.stopPropagation();
+  currentMsg = id;
+
+  picker.style.display = "flex";
+  picker.innerHTML = "";
+
+  REACTIONS.forEach(r => {
+    const s = document.createElement("span");
+    s.className = "emoji";
+    s.innerText = r;
+    s.onclick = () => {
+      picker.style.display = "none";
+      toggle(currentMsg, r);
+    };
+    picker.appendChild(s);
+  });
+};
+
+document.addEventListener("click", (e) => {
+  if (!picker.contains(e.target)) picker.style.display = "none";
+});
 </script>
+
+</body>
+</html>
