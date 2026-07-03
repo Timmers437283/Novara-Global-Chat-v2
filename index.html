@@ -248,30 +248,49 @@ window.saveName = function () {
   heartbeat();
 };
 
+/*
+  FORMAT TIME
+  Formats a stored epoch (msg.time) into the VIEWER's own local time,
+  rather than baking in the sender's local time at send-time.
+  Shows just HH:MM for messages sent today, and adds a date prefix
+  ("Jul 2") for anything sent on a previous day.
+*/
+function formatTime(epochMs) {
+  const d = new Date(epochMs);
+  const now = new Date();
+
+  const timeStr = d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return timeStr;
+
+  const dateStr = d.toLocaleDateString([], {
+    month: "short",
+    day: "numeric"
+  });
+
+  return `${dateStr} ${timeStr}`;
+}
+
 /* SEND */
 window.send = function () {
   const input = document.getElementById("msg");
   const text = input.value.trim();
   if (!text || text.length > 88) return;
 
-  const now = new Date();
+  push(messagesRef, {
+    text,
+    name: username,
+    avatar,
+    time: Date.now(),
+    reactions: {}
+  });
 
-const timeString = now.toLocaleTimeString([], {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false
-});
-
-push(messagesRef, {
-  text,
-  name: username,
-  avatar,
-  time: Date.now(),
-  timestamp: timeString,
-  reactions: {}
-});
-
-input.value = "";
+  input.value = "";
 };
 
 document.addEventListener("keydown", (e) => {
@@ -312,7 +331,7 @@ onValue(messagesRef, (snap) => {
           <div class="name">
             ${msg.name || "Unknown"}
                 <span class="time">
-                  ${msg.timestamp || new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  ${formatTime(msg.time)}
                 </span>
             </div>
           <div>${msg.text || ""}</div>
