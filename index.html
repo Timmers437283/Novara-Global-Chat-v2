@@ -67,6 +67,7 @@ body {
   margin-bottom: 4px;
 }
 
+/* reactions row */
 .reactions {
   display: flex;
   gap: 6px;
@@ -75,6 +76,7 @@ body {
   flex-wrap: wrap;
 }
 
+/* reaction pill */
 .react {
   background: #2a2a2a;
   padding: 4px 8px;
@@ -87,6 +89,17 @@ body {
   background: #1f3b66;
 }
 
+/* FIRST reaction next to bubble */
+.first {
+  background: #3a3a3a;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-right: 6px;
+  align-self: flex-start;
+}
+
+/* plus button */
 .plus {
   width: 24px;
   height: 24px;
@@ -158,7 +171,10 @@ import {
   push,
   onChildAdded,
   update,
-  get
+  get,
+  set,
+  onValue,
+  onDisconnect
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -173,14 +189,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
 const messagesRef = ref(db, "messages");
+const onlineRef = ref(db, "online");
 
 const avatars = ["cat","crow","elephant","dog","dog2","panda"];
 const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
 
 const myId = Math.random().toString(36).slice(2);
 
-/* SAFE USER */
+/* USER */
 let username = localStorage.getItem("username");
 let avatar = localStorage.getItem("avatar");
 
@@ -194,7 +212,33 @@ if (!avatar) {
   localStorage.setItem("avatar", avatar);
 }
 
-/* SAFE DOM INIT */
+/* ONLINE SYSTEM */
+const meRef = ref(db, "online/" + myId);
+
+set(meRef, {
+  name: username,
+  time: Date.now()
+});
+
+onDisconnect(meRef).remove();
+
+onValue(onlineRef, (snap) => {
+  const data = snap.val() || {};
+  let count = Object.keys(data).length;
+
+  let el = document.getElementById("onlineCount");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "onlineCount";
+    el.style.color = "#888";
+    el.style.padding = "6px";
+    document.getElementById("topbar").appendChild(el);
+  }
+
+  el.innerText = `Online: ${count}`;
+});
+
+/* INIT INPUT */
 window.addEventListener("DOMContentLoaded", () => {
   const el = document.getElementById("nameInput");
   if (el) el.value = username;
@@ -210,6 +254,8 @@ window.saveName = function () {
 
   username = v.slice(0, 20);
   localStorage.setItem("username", username);
+
+  set(meRef, { name: username, time: Date.now() });
 };
 
 /* SEND */
@@ -231,7 +277,6 @@ window.send = function () {
   input.value = "";
 };
 
-/* ENTER */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
@@ -244,17 +289,19 @@ onChildAdded(messagesRef, (snap) => {
   const reactions = msg.reactions || {};
 
   let reactionHTML = "";
-
   for (let e in reactions) {
-    const users = reactions[e] || [];
-    const active = users.includes(myId);
-
     reactionHTML += `
-      <div class="react ${active ? "active" : ""}"
-      onclick="toggle('${id}','${e}')">
-        ${e} ${users.length}
+      <div class="react" onclick="toggle('${id}','${e}')">
+        ${e} ${reactions[e].length}
       </div>
     `;
+  }
+
+  let firstReaction = "";
+  const keys = Object.keys(reactions);
+  if (keys.length > 0) {
+    const f = keys[0];
+    firstReaction = `<div class="first">${f} ${reactions[f].length}</div>`;
   }
 
   const div = document.createElement("div");
@@ -263,15 +310,19 @@ onChildAdded(messagesRef, (snap) => {
   div.innerHTML = `
     <img class="avatar" src="assets/${msg.avatar}.png">
 
-    <div>
-      <div class="bubble">
-        <div class="name">${msg.name}</div>
-        <div>${msg.text}</div>
-      </div>
+    <div style="display:flex; gap:8px;">
+      ${firstReaction}
 
-      <div class="reactions">
-        ${reactionHTML}
-        <button class="plus" onclick="openPicker(event,'${id}')">+</button>
+      <div>
+        <div class="bubble">
+          <div class="name">${msg.name}</div>
+          <div>${msg.text}</div>
+        </div>
+
+        <div class="reactions">
+          ${reactionHTML}
+          <button class="plus" onclick="openPicker(event,'${id}')">+</button>
+        </div>
       </div>
     </div>
   `;
@@ -279,7 +330,7 @@ onChildAdded(messagesRef, (snap) => {
   document.getElementById("chat").appendChild(div);
 });
 
-/* TOGGLE REACTION (SAFE, NO IMPORTS) */
+/* REACTIONS */
 window.toggle = async function(id, emoji) {
   const r = ref(db, "messages/" + id);
   const s = await get(r);
@@ -316,20 +367,16 @@ window.openPicker = function (e, id) {
     const s = document.createElement("span");
     s.className = "emoji";
     s.innerText = r;
-    s.onclick = () => addReaction(r);
+    s.onclick = () => {
+      picker.style.display = "none";
+      toggle(currentMsg, r);
+    };
     picker.appendChild(s);
   });
 };
 
-window.addReaction = function (emoji) {
-  picker.style.display = "none";
-  toggle(currentMsg, emoji);
-};
-
 document.addEventListener("click", (e) => {
-  if (!picker.contains(e.target)) {
-    picker.style.display = "none";
-  }
+  if (!picker.contains(e.target)) picker.style.display = "none";
 });
 </script>
 
