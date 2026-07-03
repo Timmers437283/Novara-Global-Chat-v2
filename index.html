@@ -277,6 +277,42 @@ body {
   font-size: 20px;
   cursor: pointer;
 }
+
+/* SCROLL TO BOTTOM BUTTON */
+#scrollBottomBtn {
+  position: fixed;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #1c1c1c;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 9998;
+}
+
+#scrollBottomBtn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+#scrollBottomBtn img {
+  width: 16px;
+  height: 16px;
+}
+
+#scrollBottomBtn:hover {
+  background: #292929;
+}
 </style>
 </head>
 
@@ -307,6 +343,11 @@ body {
 </div>
 
 <div id="chat"></div>
+
+<button id="scrollBottomBtn">
+  <img src="assets/arrow.png">
+</button>
+
 <div id="picker"></div>
 
 <div id="inputBar">
@@ -486,6 +527,29 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
 
+/* SCROLL TO BOTTOM BUTTON */
+const scrollBtn = document.getElementById("scrollBottomBtn");
+const chatEl = document.getElementById("chat");
+
+function isNearBottom() {
+  const threshold = 40; // px tolerance so it hides right as you reach bottom
+  return chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight <= threshold;
+}
+
+function updateScrollBtn() {
+  if (isNearBottom()) {
+    scrollBtn.classList.remove("visible");
+  } else {
+    scrollBtn.classList.add("visible");
+  }
+}
+
+chatEl.addEventListener("scroll", updateScrollBtn);
+
+scrollBtn.addEventListener("click", () => {
+  chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" });
+});
+
 /* RENDER */
 onValue(messagesRef, (snap) => {
   const data = snap.val() || {};
@@ -535,6 +599,8 @@ onValue(messagesRef, (snap) => {
 
     chat.appendChild(div);
   });
+
+  updateScrollBtn();
 });
 
 /* TOGGLE REACTION */
