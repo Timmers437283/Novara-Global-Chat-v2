@@ -12,6 +12,7 @@ body {
   color: white;
 }
 
+/* TOPBAR */
 #topbar {
   display: flex;
   justify-content: space-between;
@@ -34,6 +35,7 @@ body {
   border-radius: 6px;
 }
 
+/* CHAT */
 #chat {
   height: calc(100vh - 140px);
   overflow-y: auto;
@@ -67,6 +69,15 @@ body {
   margin-bottom: 4px;
 }
 
+/* FIRST reaction beside bubble */
+.first {
+  background: #3a3a3a;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  height: fit-content;
+}
+
 /* reactions row */
 .reactions {
   display: flex;
@@ -76,27 +87,13 @@ body {
   flex-wrap: wrap;
 }
 
-/* reaction pill */
+/* reaction pills */
 .react {
   background: #2a2a2a;
   padding: 4px 8px;
   border-radius: 20px;
   font-size: 12px;
   cursor: pointer;
-}
-
-.react.active {
-  background: #1f3b66;
-}
-
-/* FIRST reaction next to bubble */
-.first {
-  background: #3a3a3a;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  margin-right: 6px;
-  align-self: flex-start;
 }
 
 /* plus button */
@@ -110,6 +107,7 @@ body {
   cursor: pointer;
 }
 
+/* INPUT */
 #inputBar {
   position: fixed;
   bottom: 0;
@@ -126,6 +124,7 @@ body {
   color: white;
 }
 
+/* EMOJI PICKER */
 #picker {
   position: fixed;
   bottom: 70px;
@@ -169,14 +168,14 @@ import {
   getDatabase,
   ref,
   push,
-  onChildAdded,
+  onValue,
   update,
   get,
   set,
-  onValue,
   onDisconnect
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
   authDomain: "novara-global.firebaseapp.com",
@@ -199,29 +198,27 @@ const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
 const myId = Math.random().toString(36).slice(2);
 
 /* USER */
-let username = localStorage.getItem("username");
-let avatar = localStorage.getItem("avatar");
+let username = localStorage.getItem("username") || ("Guest" + Math.floor(Math.random()*9999));
+localStorage.setItem("username", username);
 
-if (!username) {
-  username = "Guest" + Math.floor(Math.random()*9999);
-  localStorage.setItem("username", username);
-}
-
-if (!avatar) {
-  avatar = avatars[Math.floor(Math.random()*avatars.length)];
-  localStorage.setItem("avatar", avatar);
-}
+let avatar = localStorage.getItem("avatar") || avatars[Math.floor(Math.random()*avatars.length)];
+localStorage.setItem("avatar", avatar);
 
 /* ONLINE SYSTEM */
 const meRef = ref(db, "online/" + myId);
 
-set(meRef, {
-  name: username,
-  time: Date.now()
-});
+function heartbeat() {
+  set(meRef, {
+    name: username,
+    t: Date.now()
+  });
+}
 
+heartbeat();
+setInterval(heartbeat, 15000);
 onDisconnect(meRef).remove();
 
+/* ONLINE COUNT */
 onValue(onlineRef, (snap) => {
   const data = snap.val() || {};
   let count = Object.keys(data).length;
@@ -235,10 +232,10 @@ onValue(onlineRef, (snap) => {
     document.getElementById("topbar").appendChild(el);
   }
 
-  el.innerText = `Online: ${count}`;
+  el.innerText = "Online: " + count;
 });
 
-/* INIT INPUT */
+/* INIT NAME */
 window.addEventListener("DOMContentLoaded", () => {
   const el = document.getElementById("nameInput");
   if (el) el.value = username;
@@ -255,7 +252,7 @@ window.saveName = function () {
   username = v.slice(0, 20);
   localStorage.setItem("username", username);
 
-  set(meRef, { name: username, time: Date.now() });
+  heartbeat();
 };
 
 /* SEND */
@@ -281,53 +278,57 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
 
-/* RENDER */
-onChildAdded(messagesRef, (snap) => {
-  const msg = snap.val();
-  const id = snap.key;
+/* REALTIME RENDER */
+onValue(messagesRef, (snap) => {
+  const data = snap.val() || {};
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
 
-  const reactions = msg.reactions || {};
+  Object.entries(data).forEach(([id, msg]) => {
+    const reactions = msg.reactions || {};
 
-  let reactionHTML = "";
-  for (let e in reactions) {
-    reactionHTML += `
-      <div class="react" onclick="toggle('${id}','${e}')">
-        ${e} ${reactions[e].length}
+    const keys = Object.keys(reactions);
+    let first = keys.length ? keys[0] : null;
+
+    let firstHTML = first
+      ? `<div class="first">${first} ${reactions[first].length}</div>`
+      : "";
+
+    let reactionHTML = "";
+
+    for (let r in reactions) {
+      reactionHTML += `
+        <div class="react" onclick="toggle('${id}','${r}')">
+          ${r} ${reactions[r].length}
+        </div>
+      `;
+    }
+
+    const div = document.createElement("div");
+    div.className = "msg";
+
+    div.innerHTML = `
+      <img class="avatar" src="assets/${msg.avatar}.png">
+
+      <div style="display:flex; gap:8px;">
+        ${firstHTML}
+
+        <div>
+          <div class="bubble">
+            <div class="name">${msg.name}</div>
+            <div>${msg.text}</div>
+          </div>
+
+          <div class="reactions">
+            ${reactionHTML}
+            <button class="plus" onclick="openPicker(event,'${id}')">+</button>
+          </div>
+        </div>
       </div>
     `;
-  }
 
-  let firstReaction = "";
-  const keys = Object.keys(reactions);
-  if (keys.length > 0) {
-    const f = keys[0];
-    firstReaction = `<div class="first">${f} ${reactions[f].length}</div>`;
-  }
-
-  const div = document.createElement("div");
-  div.className = "msg";
-
-  div.innerHTML = `
-    <img class="avatar" src="assets/${msg.avatar}.png">
-
-    <div style="display:flex; gap:8px;">
-      ${firstReaction}
-
-      <div>
-        <div class="bubble">
-          <div class="name">${msg.name}</div>
-          <div>${msg.text}</div>
-        </div>
-
-        <div class="reactions">
-          ${reactionHTML}
-          <button class="plus" onclick="openPicker(event,'${id}')">+</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("chat").appendChild(div);
+    chat.appendChild(div);
+  });
 });
 
 /* REACTIONS */
