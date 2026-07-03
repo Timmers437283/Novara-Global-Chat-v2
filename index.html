@@ -1,282 +1,363 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Global Chat</title>
+<meta charset="UTF-8">
+<title>Global Chat</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b0b0b;
-      color: white;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0b0b0b;
+  color: white;
+}
 
-    #topbar {
-      padding: 10px;
-      background: #151515;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
+/* TOP BAR */
+#topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #151515;
+  align-items: center;
+}
 
-    #leftTop {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
+#left {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
-    #nameInput {
-      background: #222;
-      border: none;
-      padding: 8px;
-      color: white;
-      outline: none;
-      border-radius: 6px;
-    }
+#nameInput {
+  background: #222;
+  border: none;
+  color: white;
+  padding: 6px;
+  border-radius: 6px;
+}
 
-    #onlineCount {
-      font-size: 14px;
-      color: #aaa;
-    }
+/* CHAT */
+#chat {
+  height: calc(100vh - 140px);
+  overflow-y: auto;
+  padding: 10px;
+}
 
-    #typing {
-      padding: 5px 10px;
-      font-size: 12px;
-      color: #888;
-      height: 18px;
-    }
+.msg {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 
-    #chat {
-      height: calc(100vh - 140px);
-      overflow-y: auto;
-      padding: 10px;
-    }
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
-    .msg {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-      align-items: flex-start;
-    }
+.bubble {
+  background: #1c1c1c;
+  padding: 8px;
+  border-radius: 8px;
+  max-width: 70%;
+}
 
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
+.name {
+  font-size: 12px;
+  color: #888;
+}
 
-    .bubble {
-      background: #1c1c1c;
-      padding: 8px;
-      border-radius: 8px;
-      max-width: 70%;
-    }
+/* INPUT */
+#inputBar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  background: #151515;
+}
 
-    .name {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 3px;
-    }
+#msg {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #222;
+  color: white;
+}
 
-    #inputBar {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      display: flex;
-      background: #151515;
-    }
+/* REACTIONS */
+.reactions {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
-    #msg {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      outline: none;
-      background: #222;
-      color: white;
-    }
+.react {
+  background: #2a2a2a;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
 
-    button {
-      width: 100px;
-      border: none;
-      background: #2b6cff;
-      color: white;
-      cursor: pointer;
-    }
+.react.active {
+  background: #1f3b66;
+}
 
-    button:hover {
-      background: #1f55cc;
-    }
-  </style>
+.plus {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* PICKER */
+#picker {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1c1c;
+  padding: 10px;
+  border-radius: 10px;
+  display: none;
+  gap: 10px;
+}
+
+.emoji {
+  font-size: 20px;
+  cursor: pointer;
+}
+</style>
 </head>
 
 <body>
 
 <div id="topbar">
-  <div id="leftTop">
-    <input id="nameInput" placeholder="Username">
+  <div id="left">
+    <input id="nameInput">
     <button onclick="saveName()">Save</button>
   </div>
-
-  <div id="onlineCount">Online: 0</div>
+  <div id="online">Online: 0</div>
 </div>
 
-<div id="typing"></div>
 <div id="chat"></div>
 
+<div id="picker"></div>
+
 <div id="inputBar">
-  <input id="msg" placeholder="Type message... (88 max)">
+  <input id="msg" placeholder="message (88 max)">
   <button onclick="send()">Send</button>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import {
-    getDatabase,
-    ref,
-    push,
-    onChildAdded,
-    onValue,
-    set,
-    remove,
-    child
-  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  onChildAdded,
+  onValue,
+  set,
+  update,
+  get,
+  child
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
-    authDomain: "novara-global.firebaseapp.com",
-    projectId: "novara-global",
-    databaseURL: "https://novara-global-default-rtdb.firebaseio.com/",
-    storageBucket: "novara-global.firebasestorage.app",
-    messagingSenderId: "525223468995",
-    appId: "1:525223468995:web:8c1cc1ba4803928168e776"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
+  authDomain: "novara-global.firebaseapp.com",
+  projectId: "novara-global",
+  databaseURL: "https://novara-global-default-rtdb.firebaseio.com/",
+  storageBucket: "novara-global.firebasestorage.app",
+  messagingSenderId: "525223468995",
+  appId: "1:525223468995:web:8c1cc1ba4803928168e776"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  const messagesRef = ref(db, "messages");
-  const presenceRef = ref(db, "presence");
-  const typingRef = ref(db, "typing");
+const messagesRef = ref(db, "messages");
+const presenceRef = ref(db, "presence");
+const typingRef = ref(db, "typing");
 
-  const avatars = ["cat", "crow", "elephant", "dog", "dog2", "panda"];
+const avatars = ["cat","crow","elephant","dog","dog2","panda"];
+const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
+const MAX_TYPES = 3;
 
-  const CLEANUP_TIME = 12 * 60 * 60 * 1000;
+let username = localStorage.getItem("username");
+let avatar = localStorage.getItem("avatar");
 
-  // USER DATA
-  let username = localStorage.getItem("username");
-  let avatar = localStorage.getItem("avatar");
+if (!username) {
+  username = "Guest" + Math.floor(Math.random()*9999);
+  localStorage.setItem("username", username);
+}
 
-  if (!username) {
-    username = "Guest" + Math.floor(Math.random() * 9999);
-    localStorage.setItem("username", username);
-  }
+if (!avatar) {
+  avatar = avatars[Math.floor(Math.random()*avatars.length)];
+  localStorage.setItem("avatar", avatar);
+}
 
-  if (!avatar) {
-    avatar = avatars[Math.floor(Math.random() * avatars.length)];
-    localStorage.setItem("avatar", avatar);
-  }
+document.getElementById("nameInput").value = username;
 
-  document.getElementById("nameInput").value = username;
+window.saveName = function () {
+  const v = document.getElementById("nameInput").value.trim();
+  if (!v) return;
+  username = v.slice(0,20);
+  localStorage.setItem("username", username);
+};
 
-  window.saveName = function () {
-    const v = document.getElementById("nameInput").value.trim();
-    if (!v) return;
+function send() {
+  let text = document.getElementById("msg").value.trim();
+  if (!text) return;
+  if (text.length > 88) return;
 
-    username = v.slice(0, 20);
-    localStorage.setItem("username", username);
-  };
-
-  // SEND MESSAGE
-  function send() {
-    const input = document.getElementById("msg");
-    let text = input.value.trim();
-
-    if (!text) return;
-    if (text.length > 88) return;
-
-    push(messagesRef, {
-      text,
-      name: username,
-      avatar,
-      time: Date.now()
-    });
-
-    input.value = "";
-  }
-
-  window.send = send;
-
-  document.getElementById("msg").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") send();
+  push(messagesRef, {
+    text,
+    name: username,
+    avatar,
+    time: Date.now(),
+    reactions: {}
   });
 
-  // DISPLAY MESSAGES
-  onChildAdded(messagesRef, (data) => {
-    const msg = data.val();
+  document.getElementById("msg").value = "";
+}
 
-    // cleanup old messages (client-side only)
-    if (msg.time && Date.now() - msg.time > CLEANUP_TIME) return;
+window.send = send;
 
-    const div = document.createElement("div");
-    div.className = "msg";
+document.getElementById("msg").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") send();
+});
 
-    div.innerHTML = `
-      <img class="avatar" src="assets/${msg.avatar}.png">
+const myId = Math.random().toString(36).slice(2);
+
+/* ONLINE */
+setInterval(()=>{
+  set(ref(db,"presence/"+myId),{time:Date.now()});
+},5000);
+
+onValue(presenceRef,(snap)=>{
+  let c=0;
+  let now=Date.now();
+  snap.forEach(u=>{
+    if(now-u.val().time<15000)c++;
+  });
+  document.getElementById("online").innerText="Online: "+c;
+});
+
+/* TYPING */
+document.getElementById("msg").addEventListener("input",()=>{
+  set(ref(db,"typing/"+myId),{name:username,time:Date.now()});
+});
+
+onValue(typingRef,(snap)=>{
+  let now=Date.now();
+  let names=[];
+  snap.forEach(u=>{
+    let v=u.val();
+    if(now-v.time<3000)names.push(v.name);
+  });
+});
+
+/* MESSAGES */
+onChildAdded(messagesRef,(snap)=>{
+  const msg = snap.val();
+  const id = snap.key;
+
+  if(msg.time && Date.now()-msg.time>12*60*60*1000) return;
+
+  const div=document.createElement("div");
+  div.className="msg";
+
+  const reactions = msg.reactions||{};
+
+  let reactionHTML="";
+
+  for(let e in reactions){
+    const users=reactions[e];
+    const active=users.includes(myId);
+
+    reactionHTML+=`
+      <div class="react ${active?'active':''}"
+      onclick="toggle('${id}','${e}')">
+      ${e} ${users.length}
+      </div>
+    `;
+  }
+
+  reactionHTML+=`<button class="plus" onclick="openPicker('${id}')">+</button>`;
+
+  div.innerHTML=`
+    <img class="avatar" src="assets/${msg.avatar}.png">
+    <div>
       <div class="bubble">
         <div class="name">${msg.name}</div>
         <div>${msg.text}</div>
+
+        <div class="reactions">
+          ${reactionHTML}
+        </div>
       </div>
-    `;
+    </div>
+  `;
 
-    document.getElementById("chat").appendChild(div);
-    document.getElementById("chat").scrollTop = 999999;
+  document.getElementById("chat").appendChild(div);
+});
+
+/* REACTIONS */
+window.toggle = async function(id,emoji){
+  const r = ref(db,"messages/"+id);
+  const s = await get(r);
+  let d=s.val();
+
+  if(!d.reactions)d.reactions={};
+
+  let arr=d.reactions[emoji]||[];
+
+  if(arr.includes(myId)){
+    arr=arr.filter(x=>x!==myId);
+  } else {
+    let active=Object.keys(d.reactions).filter(k=>d.reactions[k].length>0);
+    if(!active.includes(emoji)&&active.length>=MAX_TYPES)return;
+    arr.push(myId);
+  }
+
+  if(arr.length===0) delete d.reactions[emoji];
+  else d.reactions[emoji]=arr;
+
+  update(r,{reactions:d.reactions});
+};
+
+/* PICKER */
+const picker=document.getElementById("picker");
+
+window.openPicker=function(id){
+  picker.style.display="flex";
+  picker.innerHTML="";
+
+  REACTIONS.forEach(e=>{
+    let s=document.createElement("span");
+    s.className="emoji";
+    s.innerText=e;
+    s.onclick=()=>add(id,e);
+    picker.appendChild(s);
   });
+};
 
-  // ONLINE SYSTEM (basic heartbeat)
-  const myId = Math.random().toString(36).slice(2);
+window.addEventListener("click",(e)=>{
+  if(!picker.contains(e.target)) picker.style.display="none";
+});
 
-  setInterval(() => {
-    set(ref(db, "presence/" + myId), {
-      time: Date.now()
-    });
-  }, 5000);
-
-  onValue(presenceRef, (snap) => {
-    let count = 0;
-    const now = Date.now();
-
-    snap.forEach((u) => {
-      if (now - u.val().time < 15000) count++;
-    });
-
-    document.getElementById("onlineCount").innerText =
-      "Online: " + count;
-  });
-
-  // TYPING INDICATOR
-  document.getElementById("msg").addEventListener("input", () => {
-    set(ref(db, "typing/" + myId), {
-      name: username,
-      time: Date.now()
-    });
-  });
-
-  onValue(typingRef, (snap) => {
-    const now = Date.now();
-    let names = [];
-
-    snap.forEach((u) => {
-      const v = u.val();
-      if (now - v.time < 3000) names.push(v.name);
-    });
-
-    document.getElementById("typing").innerText =
-      names.length ? names.join(", ") + " is typing..." : "";
-  });
-
+window.add=function(id,e){
+  picker.style.display="none";
+  toggle(id,e);
+};
 </script>
 
 </body>
