@@ -27,12 +27,148 @@ body {
   align-items: center;
 }
 
+#right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+}
+
+/* SETTINGS BUBBLE BUTTON */
+.bubble-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.bubble-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+.bubble-btn:hover {
+  background: #333;
+}
+
+/* SETTINGS PANEL */
+#settingsPanel {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  width: 230px;
+  background: #1c1c1c;
+  border-radius: 12px;
+  padding: 14px;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10000;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+
+#settingsPanel.open {
+  display: flex;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-row .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+#avatarNameBtn {
+  flex: 1;
+  background: #2a2a2a;
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+#avatarNameBtn:hover {
+  background: #333;
+}
+
+/* AVATAR LIST */
+#avatarList {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+#avatarList.open {
+  display: flex;
+}
+
+.avatar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.avatar-item:hover {
+  background: #2a2a2a;
+}
+
+.avatar-item img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.avatar-item span {
+  font-size: 13px;
+}
+
+/* NAME CHANGE (moved into settings) */
+.settings-name {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 12px;
+}
+
 #nameInput {
+  flex: 1;
   background: #222;
   border: none;
   color: white;
   padding: 6px;
   border-radius: 6px;
+}
+
+#settingsPanel button {
+  background: #2a2a2a;
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#settingsPanel button:hover {
+  background: #333;
 }
 
 /* CHAT */
@@ -147,9 +283,26 @@ body {
 <body>
 
 <div id="topbar">
-  <div id="left">
-    <input id="nameInput" placeholder="username">
-    <button onclick="saveName()">Save</button>
+  <div id="left"></div>
+
+  <div id="right">
+    <button id="settingsBtn" class="bubble-btn">
+      <img src="assets/settings.png">
+    </button>
+
+    <div id="settingsPanel">
+      <div class="settings-row">
+        <img id="settingsAvatar" class="avatar" src="assets/cat.png">
+        <button id="avatarNameBtn">Cat</button>
+      </div>
+
+      <div id="avatarList"></div>
+
+      <div class="settings-name">
+        <input id="nameInput" placeholder="username">
+        <button onclick="saveName()">Save</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -228,15 +381,27 @@ onValue(onlineRef, (snap) => {
     el = document.createElement("div");
     el.id = "onlineCount";
     el.style.color = "#888";
-    document.getElementById("topbar").appendChild(el);
+    document.getElementById("left").appendChild(el);
   }
 
   el.innerText = "Online: " + count;
 });
 
+/* HELPERS */
+function label(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function refreshSettingsAvatar() {
+  document.getElementById("settingsAvatar").src = `assets/${avatar}.png`;
+  document.getElementById("avatarNameBtn").innerText = label(avatar);
+}
+
 /* INIT */
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("nameInput").value = username;
+  refreshSettingsAvatar();
+  buildAvatarList();
 });
 
 /* SAVE NAME */
@@ -247,6 +412,30 @@ window.saveName = function () {
   localStorage.setItem("username", username);
   heartbeat();
 };
+
+/* AVATAR LIST */
+function buildAvatarList() {
+  const list = document.getElementById("avatarList");
+  list.innerHTML = "";
+
+  avatars.forEach(a => {
+    const item = document.createElement("div");
+    item.className = "avatar-item";
+    item.innerHTML = `
+      <img src="assets/${a}.png">
+      <span>${label(a)}</span>
+    `;
+    item.onclick = (e) => {
+      e.stopPropagation();
+      avatar = a;
+      localStorage.setItem("avatar", avatar);
+      heartbeat();
+      refreshSettingsAvatar();
+      list.classList.remove("open");
+    };
+    list.appendChild(item);
+  });
+}
 
 /*
   FORMAT TIME
@@ -348,7 +537,7 @@ onValue(messagesRef, (snap) => {
   });
 });
 
-/* TOGGLE */
+/* TOGGLE REACTION */
 window.toggle = async function(id, emoji) {
   const r = ref(db, "messages/" + id);
   const s = await get(r);
@@ -371,7 +560,7 @@ window.toggle = async function(id, emoji) {
   update(r, { reactions: d.reactions });
 };
 
-/* PICKER */
+/* REACTION PICKER */
 const picker = document.getElementById("picker");
 let currentMsg = null;
 
@@ -394,8 +583,32 @@ window.openPicker = function (e, id) {
   });
 };
 
+/* SETTINGS PANEL OPEN/CLOSE */
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+const avatarNameBtn = document.getElementById("avatarNameBtn");
+const avatarList = document.getElementById("avatarList");
+
+settingsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  settingsPanel.classList.toggle("open");
+  avatarList.classList.remove("open");
+});
+
+avatarNameBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  avatarList.classList.toggle("open");
+});
+
+/* CLOSE PICKER / SETTINGS ON OUTSIDE CLICK */
 document.addEventListener("click", (e) => {
-  if (!picker.contains(e.target)) picker.style.display = "none";
+  if (!picker.contains(e.target)) {
+    picker.style.display = "none";
+  }
+  if (!settingsPanel.contains(e.target) && e.target !== settingsBtn && !settingsBtn.contains(e.target)) {
+    settingsPanel.classList.remove("open");
+    avatarList.classList.remove("open");
+  }
 });
 </script>
 
