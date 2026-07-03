@@ -12,7 +12,6 @@ body {
   color: white;
 }
 
-/* TOPBAR */
 #topbar {
   display: flex;
   justify-content: space-between;
@@ -35,7 +34,6 @@ body {
   border-radius: 6px;
 }
 
-/* CHAT */
 #chat {
   height: calc(100vh - 140px);
   overflow-y: auto;
@@ -69,15 +67,6 @@ body {
   margin-bottom: 4px;
 }
 
-/* FIRST reaction beside bubble */
-.first {
-  background: #3a3a3a;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  height: fit-content;
-}
-
 /* reactions row */
 .reactions {
   display: flex;
@@ -87,7 +76,6 @@ body {
   flex-wrap: wrap;
 }
 
-/* reaction pills */
 .react {
   background: #2a2a2a;
   padding: 4px 8px;
@@ -96,7 +84,6 @@ body {
   cursor: pointer;
 }
 
-/* plus button */
 .plus {
   width: 24px;
   height: 24px;
@@ -107,7 +94,7 @@ body {
   cursor: pointer;
 }
 
-/* INPUT */
+/* input */
 #inputBar {
   position: fixed;
   bottom: 0;
@@ -124,7 +111,7 @@ body {
   color: white;
 }
 
-/* EMOJI PICKER */
+/* picker */
 #picker {
   position: fixed;
   bottom: 70px;
@@ -195,6 +182,7 @@ const onlineRef = ref(db, "online");
 const avatars = ["cat","crow","elephant","dog","dog2","panda"];
 const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
 
+const order = ["❤️","😂","😭","💀","🥀","🤡"];
 const myId = Math.random().toString(36).slice(2);
 
 /* USER */
@@ -204,7 +192,7 @@ localStorage.setItem("username", username);
 let avatar = localStorage.getItem("avatar") || avatars[Math.floor(Math.random()*avatars.length)];
 localStorage.setItem("avatar", avatar);
 
-/* ONLINE SYSTEM */
+/* ONLINE */
 const meRef = ref(db, "online/" + myId);
 
 function heartbeat() {
@@ -218,7 +206,6 @@ heartbeat();
 setInterval(heartbeat, 15000);
 onDisconnect(meRef).remove();
 
-/* ONLINE COUNT */
 onValue(onlineRef, (snap) => {
   const data = snap.val() || {};
   let count = Object.keys(data).length;
@@ -235,7 +222,7 @@ onValue(onlineRef, (snap) => {
   el.innerText = "Online: " + count;
 });
 
-/* INIT NAME */
+/* INIT */
 window.addEventListener("DOMContentLoaded", () => {
   const el = document.getElementById("nameInput");
   if (el) el.value = username;
@@ -278,7 +265,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
 
-/* REALTIME RENDER */
+/* RENDER */
 onValue(messagesRef, (snap) => {
   const data = snap.val() || {};
   const chat = document.getElementById("chat");
@@ -287,22 +274,17 @@ onValue(messagesRef, (snap) => {
   Object.entries(data).forEach(([id, msg]) => {
     const reactions = msg.reactions || {};
 
-    const keys = Object.keys(reactions);
-    let first = keys.length ? keys[0] : null;
-
-    let firstHTML = first
-      ? `<div class="first">${first} ${reactions[first].length}</div>`
-      : "";
-
     let reactionHTML = "";
 
-    for (let r in reactions) {
-      reactionHTML += `
-        <div class="react" onclick="toggle('${id}','${r}')">
-          ${r} ${reactions[r].length}
-        </div>
-      `;
-    }
+    order.forEach(r => {
+      if (reactions[r]) {
+        reactionHTML += `
+          <div class="react" onclick="toggle('${id}','${r}')">
+            ${r} ${reactions[r].length}
+          </div>
+        `;
+      }
+    });
 
     const div = document.createElement("div");
     div.className = "msg";
@@ -310,19 +292,15 @@ onValue(messagesRef, (snap) => {
     div.innerHTML = `
       <img class="avatar" src="assets/${msg.avatar}.png">
 
-      <div style="display:flex; gap:8px;">
-        ${firstHTML}
+      <div>
+        <div class="bubble">
+          <div class="name">${msg.name}</div>
+          <div>${msg.text}</div>
+        </div>
 
-        <div>
-          <div class="bubble">
-            <div class="name">${msg.name}</div>
-            <div>${msg.text}</div>
-          </div>
-
-          <div class="reactions">
-            ${reactionHTML}
-            <button class="plus" onclick="openPicker(event,'${id}')">+</button>
-          </div>
+        <div class="reactions">
+          ${reactionHTML}
+          <button class="plus" onclick="openPicker(event,'${id}')">+</button>
         </div>
       </div>
     `;
@@ -331,7 +309,7 @@ onValue(messagesRef, (snap) => {
   });
 });
 
-/* REACTIONS */
+/* TOGGLE REACTIONS */
 window.toggle = async function(id, emoji) {
   const r = ref(db, "messages/" + id);
   const s = await get(r);
