@@ -292,7 +292,7 @@ body {
 
     <div id="settingsPanel">
       <div class="settings-row">
-        <img id="settingsAvatar" class="avatar" src="assets/cat.png">
+        <img id="settingsAvatar" class="avatar" src="assets/Cat.png">
         <button id="avatarNameBtn">Cat</button>
       </div>
 
@@ -344,8 +344,8 @@ const db = getDatabase(app);
 const messagesRef = ref(db, "messages");
 const onlineRef = ref(db, "online");
 
-const avatars = ["cat","crow","elephant","dog","dog2","panda"];
-const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡"];
+const avatars = ["Cat","Crow","Elephant","Frenchie","Beagle","Panda","Monkey","Hippo"];
+const REACTIONS = ["❤️","😂","😭","💀","🥀","🤡","👍","👎"];
 
 const order = REACTIONS;
 const myId = Math.random().toString(36).slice(2);
