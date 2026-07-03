@@ -70,15 +70,16 @@ body {
   margin-bottom: 4px;
 }
 
-/* REACTIONS */
+/* REACTIONS (FIXED LEFT ALIGN) */
 .reactions {
   display: flex;
   gap: 6px;
   margin-top: 6px;
-  margin-left: 48px;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 
+/* reaction pill */
 .react {
   background: #2a2a2a;
   padding: 4px 8px;
@@ -87,6 +88,7 @@ body {
   cursor: pointer;
 }
 
+/* plus button */
 .plus {
   width: 24px;
   height: 24px;
@@ -167,7 +169,7 @@ import {
 
 /* FIREBASE */
 const firebaseConfig = {
-  apiKey: "AIzaSyBAc10kP2GOre4di3zwLuXePMS1bA3-GBU",
+  apiKey: "AIzaSyBAc10pK2GOre4di3zwLuXePMS1bA3-GBU",
   authDomain: "novara-global.firebaseapp.com",
   projectId: "novara-global",
   databaseURL: "https://novara-global-default-rtdb.firebaseio.com/",
@@ -195,7 +197,7 @@ localStorage.setItem("username", username);
 let avatar = localStorage.getItem("avatar") || avatars[Math.floor(Math.random()*avatars.length)];
 localStorage.setItem("avatar", avatar);
 
-/* ONLINE SYSTEM */
+/* ONLINE */
 const meRef = ref(db, "online/" + myId);
 
 function heartbeat() {
@@ -260,7 +262,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
 
-/* RENDER (SAFE) */
+/* RENDER */
 onValue(messagesRef, (snap) => {
   const data = snap.val() || {};
   const chat = document.getElementById("chat");
@@ -306,7 +308,7 @@ onValue(messagesRef, (snap) => {
   });
 });
 
-/* TOGGLE REACTION */
+/* TOGGLE */
 window.toggle = async function(id, emoji) {
   const r = ref(db, "messages/" + id);
   const s = await get(r);
