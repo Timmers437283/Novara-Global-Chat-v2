@@ -70,6 +70,13 @@ body {
   margin-bottom: 4px;
 }
 
+.time {
+  color: #666;
+  font-size: 11px;
+  font-weight: normal;
+  margin-left: 5px;
+}
+
 /* REACTIONS (FIXED LEFT ALIGN) */
 .reactions {
   display: flex;
@@ -247,16 +254,22 @@ window.send = function () {
   const text = input.value.trim();
   if (!text || text.length > 88) return;
 
-  push(messagesRef, {
-    text,
-    name: username,
-    avatar,
-    time: Date.now(),
-    reactions: {}
-  });
+  const now = new Date();
 
-  input.value = "";
-};
+const timeString = now.toLocaleTimeString([], {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false
+});
+
+push(messagesRef, {
+  text,
+  name: username,
+  avatar,
+  time: Date.now(),
+  timestamp: timeString,
+  reactions: {}
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
@@ -293,7 +306,10 @@ onValue(messagesRef, (snap) => {
 
       <div>
         <div class="bubble">
-          <div class="name">${msg.name || "Unknown"}</div>
+          <div class="name">
+            ${msg.name || "Unknown"}
+                <span class="time">${msg.timestamp || ""}</span>
+            </div>
           <div>${msg.text || ""}</div>
         </div>
 
