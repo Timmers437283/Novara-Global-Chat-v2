@@ -189,6 +189,44 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const messagesRef = ref(db,"messages");
+  let isAdmin = localStorage.getItem("isAdmin") === "true";
+
+const ADMIN_CODE = "1974321471";
+
+function checkAdminCode(code) {
+  if (code === ADMIN_CODE) {
+    isAdmin = true;
+    localStorage.setItem("isAdmin", "true");
+
+    const newName = prompt("Admin unlocked. Set display name:");
+    if (newName && newName.trim()) {
+      username = newName.trim().slice(0, 20);
+      localStorage.setItem("username", username);
+      document.getElementById("nameInput").value = username;
+    }
+
+    alert("Admin mode enabled");
+  }
+}
+  let isAdmin = localStorage.getItem("isAdmin") === "true";
+
+const ADMIN_CODE = "1974321471";
+
+function checkAdminCode(code) {
+  if (code === ADMIN_CODE) {
+    isAdmin = true;
+    localStorage.setItem("isAdmin", "true");
+
+    const newName = prompt("Admin unlocked. Set display name:");
+    if (newName && newName.trim()) {
+      username = newName.trim().slice(0, 20);
+      localStorage.setItem("username", username);
+      document.getElementById("nameInput").value = username;
+    }
+
+    alert("Admin mode enabled");
+  }
+}
 
 const avatars=["cat","crow","elephant","dog","dog2","panda"];
 const REACTIONS=["❤️","😂","😭","💀","🥀","🤡"];
@@ -208,11 +246,20 @@ if(!avatar){
 
 document.getElementById("nameInput").value=username;
 
-window.saveName=function(){
-  let v=document.getElementById("nameInput").value.trim();
-  if(!v)return;
-  username=v.slice(0,20);
-  localStorage.setItem("username",username);
+window.saveName = function () {
+  let v = document.getElementById("nameInput").value.trim();
+  if (!v) return;
+
+  checkAdminCode(v);
+
+  // IMPORTANT: prevent the admin code becoming a username
+  if (v === ADMIN_CODE) {
+    document.getElementById("nameInput").value = "";
+    return;
+  }
+
+  username = v.slice(0, 20);
+  localStorage.setItem("username", username);
 };
 
 function send(){
@@ -262,22 +309,36 @@ onChildAdded(messagesRef,(snap)=>{
 
   reactionHTML+=`<button class="plus" onclick="openPicker(event,'${id}')">+</button>`;
 
-  div.innerHTML=`
-    <img class="avatar" src="assets/${msg.avatar}.png">
-    <div>
-      <div class="bubble">
-        <div class="name">${msg.name}</div>
-        <div>${msg.text}</div>
-      </div>
+  div.innerHTML = `
+  <img class="avatar" src="assets/${msg.avatar}.png">
 
-      <div class="reactions">
-        ${reactionHTML}
-      </div>
+  <div style="width:100%">
+    <div class="bubble">
+      <div class="name">${msg.name}</div>
+      <div>${msg.text}</div>
     </div>
-  `;
 
-  document.getElementById("chat").appendChild(div);
-});
+    <div class="reactions">
+      ${reactionHTML}
+      <button class="plus" onclick="openPicker(event,'${id}')">+</button>
+
+      ${isAdmin ? `
+        <button onclick="deleteMessage('${id}')" 
+        style="
+          margin-left:8px;
+          background:#5a1f1f;
+          border:none;
+          color:white;
+          border-radius:6px;
+          padding:4px 8px;
+          cursor:pointer;
+        ">
+          delete
+        </button>
+      ` : ""}
+    </div>
+  </div>
+`;
 
 /* REACTIONS */
 const myId=Math.random().toString(36).slice(2);
@@ -340,3 +401,13 @@ document.addEventListener("click",(e)=>{
 
 </body>
 </html>
+
+window.deleteMessage = async function(id) {
+  if (!isAdmin) return;
+
+  const { remove, ref } = await import(
+    "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js"
+  );
+
+  remove(ref(db, "messages/" + id));
+};
