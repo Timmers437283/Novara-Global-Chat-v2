@@ -271,6 +271,9 @@ push(messagesRef, {
   reactions: {}
 });
 
+input.value = "";
+};
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
